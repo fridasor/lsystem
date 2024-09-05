@@ -79,7 +79,7 @@ impl LSystem {
 
                     velocity = brackets_velocities.pop().expect("Could not pop velocity.");
                 }
-                'F' => {
+                'F' | 'G' | 'X' => {
                     point = (point.0 + velocity.0 * self.length, point.1 + velocity.1 * self.length);
                     current_path.push(point.clone());
                 }
@@ -94,11 +94,6 @@ impl LSystem {
                         velocity.0 * self.angle.cos() - velocity.1 * self.angle.sin(), 
                         velocity.0 * self.angle.sin() + velocity.1 * self.angle.cos()
                     );
-                }
-                'X' => {
-                    point = (point.0 + velocity.0 * self.length, point.1 + velocity.1 * self.length);
-                    // self.vertices.push(point.clone());
-                    current_path.push(point.clone());
                 }
                 _ => (),
             }
