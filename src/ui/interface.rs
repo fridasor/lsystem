@@ -60,7 +60,7 @@ impl Preset {
         match &self {
             Preset::Fern => ("X=>F-[[X]+X]+F[+FX]-X, F=>FF", "X", 22.5),
             Preset::Hilbert => ("A=>+BF-AFA-FB+, B=>-AF+BFB+FA-", "A", 90.0),
-            Preset::Koch => ("F=>F+F-F-F+F", "F", 90.0),
+            Preset::Koch => ("F=>F+F--F+F", "F", 60.0),
             Preset::Bricks => ("F=>FF+F-F+F+FF", "F+F+F+F", 90.0),
             Preset::Sierpinski => ("F=>G-F-G, G=>F+G+F", "F", 60.0),
             Preset::Dragon => ("F=>F+X, X=>F-X", "F", 90.0),
