@@ -1,9 +1,9 @@
 use crate::utils::lsystem::LSystem;
 use iced::Font;
 use iced::widget::{
-    Row, TextInput, slider, row, text, container, column, button, tooltip, horizontal_space,
+    Column, TextInput, slider, row, text, container, column, button, tooltip,
 };
-use iced::{Center, Rectangle, Element, Task, Theme};
+use iced::{Center, Element, Task, Theme};
 
 
 pub fn main_result() -> iced::Result {
@@ -55,6 +55,19 @@ enum Message {
     LoadPreset(Preset),
 }
 
+impl Preset {
+    pub fn parameters(&self) -> (&str, &str, f64) {
+        match &self {
+            Preset::Fern => ("X=>F-[[X]+X]+F[+FX]-X, F=>FF", "X", 22.5),
+            Preset::Hilbert => ("A=>+BF-AFA-FB+, B=>-AF+BFB+FA-", "A", 90.0),
+            Preset::Koch => ("F=>F+F-F-F+F", "F", 90.0),
+            Preset::Bricks => ("F=>FF+F-F+F+FF", "F+F+F+F", 90.0),
+            Preset::Sierpinski => ("F=>G-F-G, G=>F+G+F", "F", 60.0),
+            Preset::Dragon => ("F=>F+X, X=>F-X", "F", 90.0),
+        }
+    }
+}
+
 impl Lindenmayer {
     fn new() -> Self {
 
@@ -92,7 +105,6 @@ impl Lindenmayer {
             Message::ScaleChanged(scale) => {
                 self.scale = scale.into();
                 self.drawing.update(drawing::Message::UpdateScale(scale));
-
             }
             Message::IterationsChanged(n) => {
                 self.n_iterations = n;
@@ -101,32 +113,14 @@ impl Lindenmayer {
                 self.angle = anglestring.parse::<f64>().unwrap_or(0.0);
             }
             Message::LoadPreset(preset) => {
-                match preset {
-                    Preset::Fern => {
-                        self.preset("X=>F-[[X]+X]+F[+FX]-X", "X", 22.5);
-                    }
-                    Preset::Bricks => {
-                        self.preset("F=>FF+F-F+F+FF", "F+F+F+F", 90.0);
-                    }
-                    Preset::Hilbert => {
-                        self.preset("A=>+BF-AFA-FB+, B=>-AF+BFB+FA-", "A", 90.0);
-                    }
-                    Preset::Dragon => {
-                        self.preset("F=>F+X, X=>F-X", "F", 90.0);
-                    }
-                    Preset::Koch => {
-                        self.preset("F=>F+F-F-F+F", "F", 90.0);
-                    }
-                    Preset::Sierpinski => {
-                        self.preset("F=>G-F-G, G=>F+G+F", "F", 60.0);
-                    }
-                }
+                self.preset(preset.parameters());
             }
         };
         return Task::none();
     }
 
-    fn preset(&mut self, rule: &str, axiom: &str, angle: f64) {
+    fn preset(&mut self, parameters: (&str, &str, f64)) {
+        let (rule, axiom, angle) = parameters;
         self.rule = rule.to_string();
         self.axiom = axiom.to_string();
         self.angle = angle;
@@ -168,7 +162,7 @@ impl Lindenmayer {
 
 
         let scale_control = column![
-            text("Scale"),
+            text("Inverse scale"),
             slider(0.1..=50.0, self.scale, Message::ScaleChanged),
             text!("{0}", self.scale.to_string()),
         ]
@@ -177,7 +171,7 @@ impl Lindenmayer {
 
         let interations_control = column![
             text("Iterations"),
-            slider(0..=10, self.n_iterations, Message::IterationsChanged),
+            slider(0..=15, self.n_iterations, Message::IterationsChanged),
             text!("{0}", self.n_iterations.to_string()),
         ]
         .padding(10)
@@ -189,12 +183,17 @@ impl Lindenmayer {
             angleinput,
             interations_control,
             scale_control,
-            action(text(">"), "Update and redraw", Some(Message::Drawing(drawing::Message::Draw(self.vertices.clone())))),
+            action(
+                text(">"), 
+                "Update and redraw", 
+                Some(Message::Drawing(drawing::Message::Draw(self.vertices.clone())))
+            ),
         ]
         .align_y(Center)
         .padding(30);
 
-        let content = column![
+        let content = row![
+            view_presets(),
             self.drawing
                 .view()
                 .map(|message| Message::Drawing(message)),
@@ -203,7 +202,6 @@ impl Lindenmayer {
         column![
             controls,
             content,
-            view_presets(),
         ]
         .padding(10)
         .spacing(20)
@@ -231,8 +229,9 @@ impl Lindenmayer {
     }
 }
 
-fn view_presets<'a>() -> Row<'a, Message> {
-    row![
+fn view_presets<'a>() -> Column<'a, Message> {
+    column![
+        text("Presets"),
         action(text("0"), "Fern", Some(Message::LoadPreset(Preset::Fern))),
         action(text("1"), "Bricks", Some(Message::LoadPreset(Preset::Bricks))),
         action(text("2"), "Sierpinski triangle", Some(Message::LoadPreset(Preset::Sierpinski))),
@@ -240,7 +239,7 @@ fn view_presets<'a>() -> Row<'a, Message> {
         action(text("4"), "Dragon curve", Some(Message::LoadPreset(Preset::Dragon))),
         action(text("5"), "Koch curve", Some(Message::LoadPreset(Preset::Koch))),
     ]
-    .spacing(30)
+    .spacing(5)
     .padding(10)   
 }
 
@@ -255,7 +254,7 @@ fn action<'a, Message: Clone + 'a>(
     label: &'a str,
     on_press: Option<Message>,
 ) -> Element<'a, Message> {
-    let action = button(container(content).center_x(100).padding(10));
+    let action = button(container(content).center_x(25).padding(5));
 
     if let Some(on_press) = on_press {
         tooltip(
@@ -271,7 +270,6 @@ fn action<'a, Message: Clone + 'a>(
 }
 
 mod drawing {
-    use crate::utils::lsystem::LSystem;
     use iced::mouse;
     use iced::widget::canvas::{self, Cache, Canvas, Geometry, Path, Stroke};
     use iced::{Element, Point, Rectangle, Renderer, Theme, Fill};
@@ -316,7 +314,6 @@ mod drawing {
         }
 
         pub fn update(&mut self, message: Message) {
-            // println!("{:?}", message);
             match message {
                 Message::Draw(vertices) => {
                     self.vertices = vertices;
@@ -345,7 +342,6 @@ mod drawing {
         ) -> Vec<Geometry> {
             let geometry = self.cache.draw(renderer, bounds.size(), |frame| {
 
-
                 let palette = theme.palette();
 
                 let start = Point::new(frame.center().x, frame.center().y);
@@ -371,8 +367,6 @@ mod drawing {
                         }
                     }
                 });
-
-                // frame.fill(&circles, palette.text);
                 frame.stroke(&lines, Stroke::default().with_color(palette.primary));
             });
 
